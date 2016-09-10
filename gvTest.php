@@ -1,16 +1,26 @@
 <?php
+/**
+ * DO NOT UPLOAD THIS FILE TO A PUBLIC WEB SERVER
+ * 
+ * THIS IS MEANT FOR LOCAL DEBUGGING AND TESTING OF FUNCTIONALITY
+ * 
+ * Before using, you must edit gvCredentials.txt or hardcode your credentials here.
+ * If you move gvCredentials.txt, you can put the path info in $pathToCredentials
+ * 
+ */
 
 require_once 'GoogleVoice.php';
+$pathToCredentials = '';
 $q = $_GET['q'];
 $results = null;
 $gv = null;
 $function = '';
-
-$parts = explode("\n", file_get_contents('credentials.txt'));
+$parts = explode("\n", file_get_contents($pathToCredentials.'gvCredentials.txt'));
 $gvPhone = $parts[2];
+$gvUser = $parts[0];
 
 if (!empty($q)) {
-  $gv = new GoogleVoice($parts[0], $parts[1]);
+  $gv = new GoogleVoice($gvUser, $parts[1]);
   switch ($q) {
     case 'search' :
       $number = $_GET['numberToSearch'];
@@ -95,13 +105,19 @@ if (!empty($q)) {
       $results = $gv->unArchive($_GET['messageId']);
       $function = "unArchive('{$_GET['messageId']}')";
       break;
+    case 'delete' :
+      $results = $gv->delete($_GET['messageId']);
+      $function = "delete('{$_GET['messageId']}')";
+      break;
     }
 //    KLGHWKYHJOLVJZZJQWLVSZNHPVJWVQPWHWOXWTPL
 //cancelCall($number, $from_number, $phone_type = 'mobile')
 //getVoicemailMP3($messageId)
-//deleteMessage($messageId)
 }
 ?>
+<h1>Google Voice Testing Dashboard</h1>
+<h2>Google Account UserName: <?=$gvUser;?></h2>
+<h3>Google Voice Phone Number: <?=$gvPhone;?></h3>
 <table>
   <tr>
     <td>
@@ -132,6 +148,7 @@ if (!empty($q)) {
   <tr>
     <td>
       <h1>Search for a number</h1>
+      <h2 style="color: red">*** Does not work ***</h2>
       <form method="get" action="gvTest.php">
         <input type="hidden" name="q" value="search" />
         <label for="numberToSearch">Search for Telephone number:</label>
@@ -195,7 +212,7 @@ if (!empty($q)) {
       <h1>Get SMS</h1>
       <form method="get" action="gvTest.php">
         <input type="hidden" name="q" value="getSms" />
-        <input type="radio" name="scope" value="new" checked="checked"/>New<br/>
+        <input type="radio" name="scope" value="new" checked="checked"/>New (same as unread)<br/>
         <input type="radio" name="scope" value="all" />All<br/>
         <input type="radio" name="scope" value="read" />Read<br/>
         <input type="radio" name="scope" value="unread" />Unread<br/>
@@ -227,6 +244,18 @@ if (!empty($q)) {
       </form>
     </td>
     <td>
+      <h1>Delete Message</h1>
+      <form method="get" action="gvTest.php">
+        <input type="hidden" name="q" value="delete" />
+        <label for="messageId">Message ID:</label>
+        <input type="text" name="messageId"/>
+        <br />
+        <button type="submit">Delete</button>
+      </form>
+    </td>
+  </tr>
+  <tr>
+    <td>
       <h1>Archive Message</h1>
       <form method="get" action="gvTest.php">
         <input type="hidden" name="q" value="archive" />
@@ -236,8 +265,6 @@ if (!empty($q)) {
         <button type="submit">Archive</button>
       </form>
     </td>
-  </tr>
-  <tr>
     <td>
       <h1>Un-Archive Message</h1>
       <form method="get" action="gvTest.php">
@@ -250,17 +277,14 @@ if (!empty($q)) {
     </td>
     <td>
     </td>
-    <td>
-    </td>
   <tr>
     <td>
       <p>
-        These functions are not implemneted in the test suite yet:
+        These functions are not implemented in the test suite yet:
       </p>
       <pre>
         cancelCall($number, $from_number, $phone_type = 'mobile')
         getVoicemailMP3($messageId)
-        deleteMessage($messageId)
       </pre>
     </td>
   </tr>
@@ -270,7 +294,7 @@ if (!empty($q)) {
   <h1>Results from actions</h1>
 <?php
 if ($function) {
-  echo "<h2>Function used to obtain results: GoogleVoice::$function</h2>";
+  echo "<p>Function used to obtain results:<br /><pre>GoogleVoice::$function</pre></p>";
 }
 
 if ($results ===  null) {
@@ -281,7 +305,7 @@ if ($results ===  null) {
 ?>
 </div>
 <div id="results" style="border: 2px #000000 solid">
-  <h1>Results gv login</h1>
+  <h1>Debug Results</h1>
 <?php
 if ($gv ===  null) {
   echo '<h2>No results</h2>';
@@ -291,8 +315,6 @@ if ($gv ===  null) {
     ."Curl Url: $vals->curlUrl\n"
     ."Curl Options: ".print_r($vals->curlOptions, true)."\n"
     ."Raw server result: ".print_r(htmlspecialchars($vals->result), true);
-//  echo $gv->getGvResults('loginChallengeResult');
-//  echo $gv->getGvResults('loginRequestResult');
 //  echo 'Results display disabled.';
 }
 ?>

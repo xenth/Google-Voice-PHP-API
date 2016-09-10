@@ -43,6 +43,7 @@ class GoogleVoice {
     'inbox' => '/inbox/recent/',
     'mark' => '/inbox/mark/',
     'missed' => '/inbox/recent/missed/',
+    'search' => '/inbox/search/',
     'sendSMS' => '/sms/send/',
     'voicemail' => '/inbox/recent/voicemail/'
   );
@@ -57,6 +58,58 @@ class GoogleVoice {
 		curl_setopt($this->_ch, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($this->_ch, CURLOPT_RETURNTRANSFER, TRUE);
 		curl_setopt($this->_ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko");  //was "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)"
+	}
+
+
+  
+  
+  /**
+   * Private helper methods. This is where all the magic happens
+   */
+    
+	/**
+	 * Source from http://www.binarytides.com/php-get-name-and-value-of-all-input-tags-on-a-page-with-domdocument/
+	 * Generic function to fetch all input tags (name and value) on a page
+	 * Useful when writing automatic login bots/scrapers
+	 */
+	private function _domGetInputTags($html)
+	{
+    $post_data = array();
+
+    // a new dom object
+    $dom = new DomDocument;
+
+    //load the html into the object
+    @$dom->loadHTML($html);  //@suppresses warnings
+    //discard white space
+    $dom->preserveWhiteSpace = FALSE;
+
+    //all input tags as a list
+    $input_tags = $dom->getElementsByTagName('input');
+
+    //get all rows from the table
+    for ($i = 0; $i < $input_tags->length; $i++)
+    {
+        if( is_object($input_tags->item($i)) )
+        {
+            $name = $value = '';
+            $name_o = $input_tags->item($i)->attributes->getNamedItem('name');
+            if(is_object($name_o))
+            {
+                $name = $name_o->value;
+
+                $value_o = $input_tags->item($i)->attributes->getNamedItem('value');
+                if(is_object($value_o))
+                {
+                    $value = $input_tags->item($i)->attributes->getNamedItem('value')->value;
+                }
+
+                $post_data[$name] = $value;
+            }
+        }
+    }
+
+    return $post_data;
 	}
 
   private function _formatNumber($number)
@@ -127,7 +180,7 @@ class GoogleVoice {
 		$URL='https://accounts.google.com/signin/challenge/sl/password';
 		curl_setopt($this->_ch, CURLOPT_URL, $URL);
     // Using DOM keeps the order of the name/value from breaking the code.
-  	$postarray = $this->dom_get_input_tags($html);
+  	$postarray = $this->_domGetInputTags($html);
 
 		// Parse the returned webpage for the "GALX" token, needed for POST requests.
 		if(!isset($postarray['GALX']) || $postarray['GALX']==''){
@@ -144,7 +197,7 @@ class GoogleVoice {
 
 		// Test if the service login was successful.
     // Using DOM keeps the order of the name/value from breaking the code.
-		$postarray = $this->dom_get_input_tags($html);
+		$postarray = $this->_domGetInputTags($html);
 		if(isset($postarray['_rnr_se']) && $postarray['_rnr_se']!='') {
 			$this->_rnr_se = $postarray['_rnr_se'];
 			$this->_loggedIn = TRUE;
@@ -215,6 +268,46 @@ class GoogleVoice {
     }
   }
 
+  
+  
+  
+  
+  /**
+   * Public debugging type methods
+   */
+
+	public function dom_dump($obj) {
+		if ($classname = get_class($obj)) {
+			$retval = "Instance of $classname, node list: \n";
+			switch (TRUE) {
+				case ($obj instanceof DOMDocument):
+					$retval .= "XPath: {$obj->getNodePath()}\n".$obj->saveXML($obj);
+					break;
+				case ($obj instanceof DOMElement):
+					$retval .= "XPath: {$obj->getNodePath()}\n".$obj->ownerDocument->saveXML($obj);
+					break;
+				case ($obj instanceof DOMAttr):
+					$retval .= "XPath: {$obj->getNodePath()}\n".$obj->ownerDocument->saveXML($obj);
+					break;
+				case ($obj instanceof DOMNodeList):
+					for ($i = 0; $i < $obj->length; $i++) {
+						$retval .= "Item #$i, XPath: {$obj->item($i)->getNodePath()}\n"."{$obj->item($i)->ownerDocument->saveXML($obj->item($i))}\n";
+					}
+					break;
+				default:
+					return "Instance of unknown class";
+			}
+		}
+		else {
+			return 'no elements...';
+		}
+		return htmlspecialchars($retval);
+	}
+
+  /**
+   * 
+   * @return object of some debugging type results
+   */
   public function getVals()
   {
     return (object) array(
@@ -223,10 +316,37 @@ class GoogleVoice {
       'result' => $this->_result
     );
   }
-   /**
-    * Mark a message in a Google Voice Inbox as archived.
-    * @param $messageId The id of the message to update.
-    */
+
+  
+  
+  
+  
+  /**
+   * General messaging methods
+   * These messages can be used to affect all types of messages including
+   * voicemail, SMS and missed calls.
+   */
+  
+	/**
+	 * Add a note to a message in a Google Voice Account.
+	 * @param $messageId The id of the message to update.
+	 * @param $note The message to send within the SMS.
+	 */
+	public function addNote($messageId, $note) {
+    return $this->_post(
+      $this->_serverPath['addNote'],
+      array(
+        'id' => $messageId,
+        'note' => $note
+      )
+    );
+	}
+
+  /**
+   * Mark a message in a Google Voice Account as archived.
+   * @param $messageId The id of the message to archive.
+   * @return array JSON object from Google server with results
+   */
   public function archive($messageId)
   {
     return $this->_post(
@@ -239,13 +359,80 @@ class GoogleVoice {
     );
   }
 
-   /**
-    * Mark a message in a Google Voice Inbox as unarchived.
-    * @param $messageId The id of the message to update.
-    */
+	/**
+	 * Delete a message or conversation.
+	 * @param $messageId The ID of the conversation to delete.
+   * @return array JSON object from Google server with results
+	 */
+	public function delete($messageId) {
+    return $this->_post(
+      $this->_serverPath['delete'],
+      array(
+        'messages' => $messageId,
+        'trash' => '1'
+      )
+    );
+	}
+
+  /**
+   * Get all messages from the Google Voice inbox including voicemails, SMS 
+   * and missed calls
+   * @return array Array of message objects
+   */
+  public function getInbox()
+  {
+    return $this->_getAndParse($this->_serverPath['inbox'], null);
+  }
+
+	/**
+	 * Mark a message in a Google Voice Account as read.
+	 * @param $messageId The id of the message to mark as read.
+	 */
+	public function markRead($messageId) {
+    return $this->_post(
+      $this->_serverPath['mark'],
+      array(
+        'messages' => $messageId,
+        'read' => '1'
+      )
+    );
+	}
+
+	/**
+	 * Mark a message in a Google Voice Account as unread.
+	 * @param $messageId The id of the message to update.
+	 */
+	public function markUnread($messageId) {
+    return $this->_post(
+      $this->_serverPath['mark'],
+      array(
+        'messages' => $messageId,
+        'read' => '0'
+      )
+    );
+	}
+
+	/**
+	 * Removes a note from a message in a Google Voice Account.
+	 * @param $messageId The id of the message to update.
+	 */
+	public function removeNote($messageId) {
+    return $this->_post(
+      '/inbox/deletenote/',
+      array(
+        'id' => $messageId
+      )
+    );
+	}
+
+  /**
+   * Mark a message in a Google Voice Account as unarchived.
+   * @param $messageId The id of the message to unarchive.
+   * @return array JSON object from Google server with results
+   */
   public function unArchive($messageId)
   {
-    $this->_post(
+    return $this->_post(
       $this->_serverPath['archive'],
       array(
         'messages' => $messageId,
@@ -253,6 +440,14 @@ class GoogleVoice {
       )
     );
   }
+
+  
+  
+  
+  
+  /**
+   * Methods related to Calls
+   */
 
 	/**
 	 * Place a call to $number connecting first to $fromNumber.
@@ -297,6 +492,64 @@ class GoogleVoice {
     );
 	}
 
+   /**
+    * Get all of the missed calls in a Google Voice inbox.
+   * @return array Array of message objects
+    */
+  public function getMissedCalls()
+  {
+    return $this->_getAndParse($this->_serverPath['missed'], null);
+  }
+
+  
+  
+  
+  
+  /**
+   * SMS methods
+   */
+  
+	/**
+	 * Get all of the SMS messages in a Google Voice inbox.
+   * @return array Array of message objects
+	 */
+	public function getAllSMS()
+	{
+    return $this->_getAndParse($this->_serverPath['getSMS'], null);
+	}
+
+	/**
+	 * Get all of the unread SMS messages in a Google Voice inbox.
+   * @return array Array of message objects
+	 */
+	public function getNewSMS()
+	{
+    // I don't understand what xenth was doing here, and the function 
+    // did not work for me in testing, so I am replacing this function
+    // call with getUread()
+
+    return $this->getUnreadSMS();
+	}
+
+	/**
+	 * Get all of the read SMS messages in a Google Voice inbox.
+   * @return array Array of message objects
+	 */
+	public function getReadSMS()
+	{
+    // isRead = false
+    return $this->_getAndParse($this->_serverPath['getSMS'], true);
+	}
+
+  /**
+	 * Get all of the unread SMS messages in a Google Voice inbox.
+   * @return array Array of message objects
+	 */
+	public function getUnreadSMS() {
+    // isRead = false
+    return $this->_getAndParse($this->_serverPath['getSMS'], false);
+	}
+
 	/**
 	 * Send an SMS to $number containing $message.
 	 * @param $number The 10-digit phone number to send the message to (formatted with parens and hyphens or none).
@@ -311,175 +564,27 @@ class GoogleVoice {
       )
     );
 	}
+
   
-	/**
-	 * Get all of the SMS messages in a Google Voice inbox.
+  
+  
+  /**
+   * Voicemail methods
+   */
+  
+
+  /**
+	 * Get all of the voicemail messages in a Google Voice inbox.
+   * @return array Array of message objects
 	 */
-	public function getAllSMS()
-	{
-    // isRead = false
-    return $this->_getAndParse($this->_serverPath['getSMS'], null);
-	}
-
-   /**
-    * Get all calls in the Google Voice inbox.
-    */
-  public function getInbox()
-  {
-    return $this->_getAndParse($this->_serverPath['inbox'], null);
-  }
-   
-   /**
-    * Get all of the missed calls in a Google Voice inbox.
-    */
-  public function getMissedCalls()
-  {
-    return $this->_getAndParse($this->_serverPath['missed'], null);
-  }
-   
-	/**
-	 * Get all of the unread SMS messages in a Google Voice inbox.
-	 */
-	public function getNewSMS()
-	{
-    $xml = $this->_get($this->_serverPath['getSMS']);
-
-    // Load the "wrapper" xml (contains two elements, json and html).
-    $dom = new \DOMDocument();
-    $dom->loadXML($xml);
-    $json = $dom->documentElement->getElementsByTagName("json")->item(0)->nodeValue;
-    $json = json_decode($json);
-
-		// now make a dom parser which can parse the contents of the HTML tag
-		$html = $dom->documentElement->getElementsByTagName("html")->item(0)->nodeValue;
-		// replace all "&" with "&amp;" so it can be parsed
-		$html = str_replace("&", "&amp;", $html);
-		$dom->loadHTML($html);
-		$xpath = new DOMXPath($dom);
-
-    // Loop through all of the messages.
-    $results = array();
-    foreach ($json->messages as $mid => $convo) {
-      // This is what xenth has:
-			$elements = $xpath->query("//div[@id='$mid']//div[@class='gc-message-sms-row']");
-			if(!is_null($elements)) {
-				if( in_array('unread', $convo->labels) ) {
-					foreach($elements as $i=>$element) {
-						$XMsgFrom = $xpath->query("span[@class='gc-message-sms-from']", $element);
-						$msgFrom = '';
-						foreach($XMsgFrom as $m) {
-							$msgFrom = trim($m->nodeValue);
-            }
-
-						if( $msgFrom != "Me:" ) {
-							$XMsgText = $xpath->query("span[@class='gc-message-sms-text']", $element);
-							$msgText = '';
-							foreach($XMsgText as $m) {
-								$msgText = trim($m->nodeValue);
-              }
-
-							$XMsgTime = $xpath->query("span[@class='gc-message-sms-time']", $element);
-							$msgTime = '';
-							foreach($XMsgTime as $m) {
-								$msgTime = trim($m->nodeValue);
-              }
-
-							$results[] = array('msgID'=>$mid, 'phoneNumber'=>$convo->phoneNumber, 'message'=>$msgText, 'date'=>date('Y-m-d H:i:s', strtotime(date('m/d/Y ',intval($convo->startTime/1000)).$msgTime)));
-						}
-					}
-				} else {
-					//echo "This message is not unread\n";
-				}
-			} else {
-				//echo "gc-message-sms-row query failed\n";
-			}
-      
-    }
-
-    return $results;
-	}
-
-	/**
-	 * Get all of the unread SMS messages in a Google Voice inbox.
-	 */
-	public function getUnreadSMS() {
-    // isRead = false
-    return $this->_getAndParse($this->_serverPath['getSMS'], false);
-	}
-	/**
-	 * Get all of the read SMS messages in a Google Voice inbox.
-	 */
-	public function getReadSMS()
-	{
-    // isRead = false
-    return $this->_getAndParse($this->_serverPath['getSMS'], true);
-	}
-
-	/**
-	 * Mark a message in a Google Voice Inbox or Voicemail as read.
-	 * @param $messageId The id of the message to update.
-	 * @param $note The message to send within the SMS.
-	 */
-	public function markRead($messageId) {
-    $this->_post(
-      $this->_serverPath['mark'],
-      array(
-        'messages' => $messageId,
-        'read' => '1'
-      )
-    );
-	}
-
-	/**
-	 * Mark a message in a Google Voice Inbox or Voicemail as unread.
-	 * @param $messageId The id of the message to update.
-	 * @param $note The message to send within the SMS.
-	 */
-	public function markUnread($messageId) {
-    $this->_post(
-      $this->_serverPath['mark'],
-      array(
-        'messages' => $messageId,
-        'read' => '0'
-      )
-    );
-	}
-
-	/**
-	 * Add a note to a message in a Google Voice Inbox or Voicemail.
-	 * @param $messageId The id of the message to update.
-	 * @param $note The message to send within the SMS.
-	 */
-	public function addNote($messageId, $note) {
-    return $this->_post(
-      $this->_serverPath['addNote'],
-      array(
-        'id' => $messageId,
-        'note' => $note
-      )
-    );
-	}
-
-	/**
-	 * Removes a note from a message in a Google Voice Inbox or Voicemail.
-	 * @param $messageId The id of the message to update.
-	 */
-	public function removeNote($messageId) {
-    return $this->_post(
-      '/inbox/deletenote/',
-      array(
-        'id' => $messageId
-      )
-    );
-	}
-
 	public function getAllVoicemail()
   {
     return $this->_getAndParse($this->_serverPath['voicemail'], null);
   }
   
 	/**
-	 * Get all of the unread SMS messages from a Google Voice Voicemail.
+	 * Get all of the unread voicemail messages from a Google Voice inbox.
+   * @return array Array of message objects
 	 */
 	public function getUnreadVoicemail()
   {
@@ -487,104 +592,31 @@ class GoogleVoice {
 	}
 
 	/**
-	 * Get all of the unread SMS messages from a Google Voice Voicemail.
+	 * Get all of the read voicemail messages from a Google Voice inbox.
+   * @return array Array of message objects
 	 */
-	public function getReadVoicemail() {
+	public function getReadVoicemail()
+  {
     return $this->_getAndParse($this->_serverPath['voicemail'], true);
 	}
 
 	/**
 	 * Get MP3 of a Google Voice Voicemail.
 	 */
-	public function getVoicemailMP3($messageId) {
+	public function getVoicemailMP3($messageId)
+  {
     return $this->_get($this->_serverPath['getMP3'] . $messageId . '/');
 	}
 
-	/**
-	 * Delete a message or conversation.
-	 * @param $messageId The ID of the conversation to delete.
-	 */
-	public function deleteMessage($messageId) {
-    $this->_post(
-      $this->_serverPath['delete'],
+  public function searchNumber($phoneNumber)
+  {
+    return $this->_post(
+      $this->_serverPath['search'],
       array(
-        'messages' => $messageId,
-        'trash' => 1
+        'q' => $this->_formatNumber($phoneNumber)
       )
+//        'v' => 82547960
     );
-	}
-
-	public function dom_dump($obj) {
-		if ($classname = get_class($obj)) {
-			$retval = "Instance of $classname, node list: \n";
-			switch (TRUE) {
-				case ($obj instanceof DOMDocument):
-					$retval .= "XPath: {$obj->getNodePath()}\n".$obj->saveXML($obj);
-					break;
-				case ($obj instanceof DOMElement):
-					$retval .= "XPath: {$obj->getNodePath()}\n".$obj->ownerDocument->saveXML($obj);
-					break;
-				case ($obj instanceof DOMAttr):
-					$retval .= "XPath: {$obj->getNodePath()}\n".$obj->ownerDocument->saveXML($obj);
-					break;
-				case ($obj instanceof DOMNodeList):
-					for ($i = 0; $i < $obj->length; $i++) {
-						$retval .= "Item #$i, XPath: {$obj->item($i)->getNodePath()}\n"."{$obj->item($i)->ownerDocument->saveXML($obj->item($i))}\n";
-					}
-					break;
-				default:
-					return "Instance of unknown class";
-			}
-		}
-		else {
-			return 'no elements...';
-		}
-		return htmlspecialchars($retval);
-	}
-
-	/**
-	 * Source from http://www.binarytides.com/php-get-name-and-value-of-all-input-tags-on-a-page-with-domdocument/
-	 * Generic function to fetch all input tags (name and value) on a page
-	 * Useful when writing automatic login bots/scrapers
-	 */
-	private function dom_get_input_tags($html)
-	{
-	    $post_data = array();
-
-	    // a new dom object
-	    $dom = new DomDocument;
-
-	    //load the html into the object
-	    @$dom->loadHTML($html);  //@suppresses warnings
-	    //discard white space
-	    $dom->preserveWhiteSpace = FALSE;
-
-	    //all input tags as a list
-	    $input_tags = $dom->getElementsByTagName('input');
-
-	    //get all rows from the table
-	    for ($i = 0; $i < $input_tags->length; $i++)
-	    {
-	        if( is_object($input_tags->item($i)) )
-	        {
-	            $name = $value = '';
-	            $name_o = $input_tags->item($i)->attributes->getNamedItem('name');
-	            if(is_object($name_o))
-	            {
-	                $name = $name_o->value;
-
-	                $value_o = $input_tags->item($i)->attributes->getNamedItem('value');
-	                if(is_object($value_o))
-	                {
-	                    $value = $input_tags->item($i)->attributes->getNamedItem('value')->value;
-	                }
-
-	                $post_data[$name] = $value;
-	            }
-	        }
-	    }
-
-	    return $post_data;
-	}
+  }
 
 }
