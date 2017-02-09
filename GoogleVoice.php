@@ -58,6 +58,11 @@ class GoogleVoice {
 		curl_setopt($this->_ch, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($this->_ch, CURLOPT_RETURNTRANSFER, TRUE);
 		curl_setopt($this->_ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko");  //was "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)"
+
+    // Added the login call here. login throws an exception, so if we can't login,
+    // let's find out now, and catch the exception on construction instead of on 
+    // all the individual members
+    $this->_logIn();
 	}
 
 
