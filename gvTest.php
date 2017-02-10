@@ -20,96 +20,101 @@ $gvPhone = $parts[2];
 $gvUser = $parts[0];
 
 if (!empty($q)) {
-  $gv = new GoogleVoice($gvUser, $parts[1]);
-  switch ($q) {
-    case 'search' :
-      $number = $_GET['numberToSearch'];
-      $results = $gv->searchNumber($number);
-      $function = "searchNumber('$number')";
-      break;
-    case 'sendText' :
-      $number = $_GET['number'];
-      $message = $_GET['message'];
-      $results = $gv->sendSMS($number, $message);
-      $function = "sendSMS('$number', '$message')";
-      break;
-    case 'callNumber' :
-      $results = $gv->callNumber($_GET['numberToCall'], $_GET['numberFrom']);
-      $function = "callNumber('{$_GET['numberToCall']}', '{$_GET['numberFrom']}')";
-      break;
-    case 'getMissedCalls' :
-      $results = $gv->getMissedCalls();
-      $function = "getMissedCalls()";
-      break;
-    case 'getInbox' :
-      $results = $gv->getInbox();
-      $function = "getInbox()";
-      break;
-    case 'getSms' :
-      switch ($_GET['scope']) {
-        case 'new':
-          $results = $gv->getNewSMS();
-          $function = "getNewSMS()";
-          break;
-        case 'all':
-          $results = $gv->getAllSMS();
-          $function = "getAllSMS()";
-          break;
-        case 'read':
-          $results = $gv->getReadSMS();
-          $function = "getReadSMS()";
-          break;
-        case 'unread':
-          $results = $gv->getUnreadSMS();
-          $function = "getUnreadSMS()";
-          break;
+  try {
+    $gv = new GoogleVoice($gvUser, $parts[1]);
+    switch ($q) {
+      case 'search' :
+        $number = $_GET['numberToSearch'];
+        $results = $gv->searchNumber($number);
+        $function = "searchNumber('$number')";
+        break;
+      case 'sendText' :
+        $number = $_GET['number'];
+        $message = $_GET['message'];
+        $results = $gv->sendSMS($number, $message);
+        $function = "sendSMS('$number', '$message')";
+        break;
+      case 'callNumber' :
+        $results = $gv->callNumber($_GET['numberToCall'], $_GET['numberFrom']);
+        $function = "callNumber('{$_GET['numberToCall']}', '{$_GET['numberFrom']}')";
+        break;
+      case 'getMissedCalls' :
+        $results = $gv->getMissedCalls();
+        $function = "getMissedCalls()";
+        break;
+      case 'getInbox' :
+        $results = $gv->getInbox();
+        $function = "getInbox()";
+        break;
+      case 'getSms' :
+        switch ($_GET['scope']) {
+          case 'new':
+            $results = $gv->getNewSMS();
+            $function = "getNewSMS()";
+            break;
+          case 'all':
+            $results = $gv->getAllSMS();
+            $function = "getAllSMS()";
+            break;
+          case 'read':
+            $results = $gv->getReadSMS();
+            $function = "getReadSMS()";
+            break;
+          case 'unread':
+            $results = $gv->getUnreadSMS();
+            $function = "getUnreadSMS()";
+            break;
+        }
+        break;
+      case 'getVoicemail' :
+        switch ($_GET['scope']) {
+          case 'all':
+            $results = $gv->getAllVoicemail();
+            $function = "getAllVoicemail()";
+            break;
+          case 'read':
+            $results = $gv->getReadVoicemail();
+            $function = "getRedVoicemail()";
+            break;
+          case 'unread':
+            $results = $gv->getUnreadVoicemail();
+            $function = "getUnreadVoicemail()";
+            break;
+        }
+        break;
+      case 'addNote' :
+        $results = $gv->addNote($_GET['messageId'], $_GET['note']);
+        $function = "addNote('{$_GET['messageId']}', '{$_GET['note']}')";
+        break;
+      case 'removeNote' :
+        $results = $gv->removeNote($_GET['messageId']);
+        $function = "removeNote('{$_GET['messageId']}')";
+        break;
+      case 'markRead' :
+        $results = $gv->markRead($_GET['messageId']);
+        $function = "markRead('{$_GET['messageId']}')";
+        break;
+      case 'markUnread' :
+        $results = $gv->markUnread($_GET['messageId']);
+        $function = "markUnread('{$_GET['messageId']}')";
+        break;
+      case 'archive' :
+        $results = $gv->archive($_GET['messageId']);
+        $function = "archive('{$_GET['messageId']}')";
+        break;
+      case 'unArchive' :
+        $results = $gv->unArchive($_GET['messageId']);
+        $function = "unArchive('{$_GET['messageId']}')";
+        break;
+      case 'delete' :
+        $results = $gv->delete($_GET['messageId']);
+        $function = "delete('{$_GET['messageId']}')";
+        break;
       }
-      break;
-    case 'getVoicemail' :
-      switch ($_GET['scope']) {
-        case 'all':
-          $results = $gv->getAllVoicemail();
-          $function = "getAllVoicemail()";
-          break;
-        case 'read':
-          $results = $gv->getReadVoicemail();
-          $function = "getRedVoicemail()";
-          break;
-        case 'unread':
-          $results = $gv->getUnreadVoicemail();
-          $function = "getUnreadVoicemail()";
-          break;
-      }
-      break;
-    case 'addNote' :
-      $results = $gv->addNote($_GET['messageId'], $_GET['note']);
-      $function = "addNote('{$_GET['messageId']}', '{$_GET['note']}')";
-      break;
-    case 'removeNote' :
-      $results = $gv->removeNote($_GET['messageId']);
-      $function = "removeNote('{$_GET['messageId']}')";
-      break;
-    case 'markRead' :
-      $results = $gv->markRead($_GET['messageId']);
-      $function = "markRead('{$_GET['messageId']}')";
-      break;
-    case 'markUnread' :
-      $results = $gv->markUnread($_GET['messageId']);
-      $function = "markUnread('{$_GET['messageId']}')";
-      break;
-    case 'archive' :
-      $results = $gv->archive($_GET['messageId']);
-      $function = "archive('{$_GET['messageId']}')";
-      break;
-    case 'unArchive' :
-      $results = $gv->unArchive($_GET['messageId']);
-      $function = "unArchive('{$_GET['messageId']}')";
-      break;
-    case 'delete' :
-      $results = $gv->delete($_GET['messageId']);
-      $function = "delete('{$_GET['messageId']}')";
-      break;
-    }
+  } catch (\Exception $e) {
+    $results = $e->getMessage();
+  }
+  //
 //    KLGHWKYHJOLVJZZJQWLVSZNHPVJWVQPWHWOXWTPL
 //cancelCall($number, $from_number, $phone_type = 'mobile')
 //getVoicemailMP3($messageId)
@@ -307,14 +312,15 @@ if ($results ===  null) {
 <div id="results" style="border: 2px #000000 solid">
   <h1>Debug Results</h1>
 <?php
-if ($gv ===  null) {
+if ($gv == null) {
   echo '<h2>No results</h2>';
 } else {
   $vals = $gv->getVals();
-  echo '<pre>'
+  echo "<pre>"
     ."Curl Url: $vals->curlUrl\n"
     ."Curl Options: ".print_r($vals->curlOptions, true)."\n"
-    ."Raw server result: ".print_r(htmlspecialchars($vals->result), true);
+    ."Raw server result: ".print_r(htmlspecialchars($vals->result), true)
+    ."</pre>";
 //  echo 'Results display disabled.';
 }
 ?>

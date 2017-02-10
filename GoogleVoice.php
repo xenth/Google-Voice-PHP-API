@@ -2,6 +2,7 @@
 
 class GoogleVoice {
   const GV_SERVER_URL = 'https://www.google.com/voice';
+  const GV_LEGACY_SERVER_URL =   "https://www.google.com/voice/b/0/redirection/voice";
 
   // Google account credentials.
 	private $_login;
@@ -174,9 +175,8 @@ class GoogleVoice {
 		$URL = "https://accounts.google.com/ServiceLogin?"
       ."service=grandcentral&"
       ."passive=1209600&"
-      ."continue=".self::GV_SERVER_URL."&"
-      ."followup=".self::GV_SERVER_URL."&"
-      ."ltmpl=open";  //adding login to GET prefills with username "&Email=$this->_login"
+      ."continue=".self::GV_LEGACY_SERVER_URL."&"
+      ."followup=".self::GV_LEGACY_SERVER_URL."#inbox";
 		curl_setopt($this->_ch, CURLOPT_URL, $URL);
 		$html = curl_exec($this->_ch);
 
@@ -212,7 +212,7 @@ class GoogleVoice {
 					  "\n\nMay need to change scraping.  Here are the inputs from the page:\n". $pi2
 					 );  //add POST action information from DOM.  May help hunt down single or dual sign on page changes.
 			throw new Exception("Could not log in to Google Voice with username: " . $this->_login . "\nLook at error log for detailed input information.\n");
-		}
+  	}
 	}
 
   private function _parseGetResults($xml, $isRead = null)

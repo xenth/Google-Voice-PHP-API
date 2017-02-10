@@ -22,8 +22,9 @@ a reason.
 
 General messaging methods
 =========================
-These messages can be used to affect all types of messages including voicemail, 
+These methods can be used to affect all types of messages including voicemail, 
 SMS and missed calls:
+
 	addNote($messageId, $note)
   archive($messageId)
 	delete($messageId)
@@ -36,6 +37,7 @@ SMS and missed calls:
 "Call" Methods
 ==============
 These methods are related to "calls" only:
+
 	callNumber($number, $from_number, $phone_type = 'mobile')
 	cancelCall($number, $from_number, $phone_type = 'mobile')
   getMissedCalls()
@@ -43,6 +45,7 @@ These methods are related to "calls" only:
 SMS methods
 ===========
 Methods that act on SMS messages:
+
 	getAllSMS()
 	getNewSMS()
 	getReadSMS()
