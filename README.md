@@ -11,9 +11,65 @@ mark a message or voicemail as read or unread, and download transcriptions and/o
 MP3 files of voicemail. Feel free to implement new functionality and send me your
 changes so I can incorporate them into this library!
 
-getUnreadSMS, getReadSMS, getUnreadVoicemail, and getReadVoicemail all return
-an array of JSON objects. Each object has the following attributes, example
-values included:
+
+Interactive Testing Dashboard
+=============================
+Use gvTest.php to test all of the implemented methods (DO NOT UPLOAD gvTest.php
+TO A PUBLIC WEB SERVER.) It is a great way to familiarize yourself with what
+the "message" objects look like and to discover new fields that Google may 
+introduce. Also, if the script breaks, gvTest makes it easier to track down
+a reason.
+
+General messaging methods
+=========================
+These methods can be used to affect all types of messages including voicemail, 
+SMS and missed calls:
+
+	addNote($messageId, $note)
+  archive($messageId)
+	delete($messageId)
+  getInbox()
+	markRead($messageId)
+	markUnread($messageId)
+	removeNote($messageId)
+  unArchive($messageId)
+  
+"Call" Methods
+==============
+These methods are related to "calls" only:
+
+	callNumber($number, $from_number, $phone_type = 'mobile')
+	cancelCall($number, $from_number, $phone_type = 'mobile')
+  getMissedCalls()
+
+SMS methods
+===========
+Methods that act on SMS messages:
+
+	getAllSMS()
+	getNewSMS()
+	getReadSMS()
+	getUnreadSMS()
+	sendSMS($number, $message)
+
+Voicemail methods
+=================
+	getAllVoicemail()
+	getReadVoicemail()
+	getUnreadVoicemail()
+	getVoicemailMP3($messageId)
+
+Methods that don't work
+=======================
+  searchNumber($phoneNumber)
+
+Debugging Methods
+=================
+	dom_dump($obj)
+  getVals()
+
+The "get" methods above all return an array of JSON "message" objects. Each object 
+has the following attributes, example values included:
 
 	$msg->id = c3716aa447a19c7e2e7347f443dd29091401ae13
 	$msg->phoneNumber = +15555555555
@@ -32,9 +88,6 @@ values included:
 	$msg->type = 11
 	$msg->children = 
 
-Note: Receiving SMSs and voicemails is mostly unnecessary via this API since
-Google now allows SMSs to be forwarded to an email address. It is  a better
-idea to parse those incoming emails with a script.
 
 SMS and Voice Integration
 =========================
@@ -60,4 +113,3 @@ Copyright 2009 by Aaron Parecki
 [http://aaronparecki.com](http://aaronparecki.com)
 
 See LICENSE
-

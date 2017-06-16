@@ -1,4 +1,11 @@
 <?php
+/**
+ * This is the original example file.
+ * 
+ * There is a new interactive testing dashboard that can be used to test all of
+ * member functions interactively. It can be found here: gvTest.php
+ * 
+ */
 
 include('GoogleVoice.php');
 
