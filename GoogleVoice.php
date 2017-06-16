@@ -58,8 +58,7 @@ class GoogleVoice {
 		curl_setopt($this->_ch, CURLOPT_COOKIEJAR, $this->_cookieFile);
 		curl_setopt($this->_ch, CURLOPT_FOLLOWLOCATION, TRUE);
 		curl_setopt($this->_ch, CURLOPT_RETURNTRANSFER, TRUE);
-		curl_setopt($this->_ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko");  //was "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)"
-
+		curl_setopt($this->_ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)");  //was "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko
     // Added the login call here. login throws an exception, so if we can't login,
     // let's find out now, and catch the exception on construction instead of on 
     // all the individual members
@@ -188,10 +187,13 @@ class GoogleVoice {
   	$postarray = $this->_domGetInputTags($html);
 
 		// Parse the returned webpage for the "GALX" token, needed for POST requests.
-		if(!isset($postarray['GALX']) || $postarray['GALX']==''){
+		if((!isset($postarray['GALX']) || $postarray['GALX']=='') && 
+				(!isset($postarray['gxf']) || $postarray['gxf']=='')) {
 			$pi1 = var_export($postarray, TRUE);
-			error_log("Could not parse for GALX token. Inputs from page:\n" . $pi1 . "\n\nHTML from page:" . $html);
-			throw new Exception("Could not parse for GALX token. Inputs from page:\n" . $pi1);
+			// putting html in the error_log clogs it up.
+			error_log("Could not parse for GALX or gfx tokens. *** TURN ON THE LOGGING OF INPUTS TO DEBUG ***");
+//			error_log("Could not parse for GALX or gfx tokens. Inputs from page:\n" . $pi1 . "\n\nHTML from page:" . $html);
+			throw new Exception("Could not parse for GALX or gfx tokens. Inputs from page:\n" . $pi1);
 		}
 
 		$postarray['Email'] = $this->_login;  //Add login to POST array
